@@ -1,60 +1,60 @@
-import Anthropic from "@anthropic-ai/sdk";
-
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
-
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
-  const { keywords } = req.body;
-
-  if (!keywords || !Array.isArray(keywords) || keywords.length === 0) {
-    return res.status(400).json({ error: "keywords array is required" });
-  }
+  const { image, mediaType } = req.body;
+  if (!image) return res.status(400).json({ error: "image is required" });
 
   try {
-    const results = [];
-
-    for (const keyword of keywords) {
-      const message = await client.messages.create({
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01"
+      },
+      body: JSON.stringify({
         model: "claude-opus-4-20250514",
         max_tokens: 1024,
         messages: [
           {
             role: "user",
-            content: `Analyze the SEO ranking difficulty and search intent for this keyword: "${keyword}".
-            
-Return a JSON object with these fields:
-- keyword: the keyword
-- difficulty: number 1-100 (SEO difficulty)
-- intent: "informational" | "commercial" | "transactional" | "navigational"
-- volume: estimated monthly searches (low/medium/high)
-- recommendation: short advice in Ukrainian
+            content: [
+              {
+                type: "image",
+                source: {
+                  type: "base64",
+                  media_type: mediaType || "image/jpeg",
+                  data: image
+                }
+              },
+              {
+                type: "text",
+                text: `You are analyzing a BULK leaderboard screenshot. Extract these stats and return ONLY a valid JSON object with no extra text:
+{
+  "rank": "the global rank number with # symbol, e.g. #661",
+  "roi": "cashflow adjusted ROI with sign and %, e.g. +124.5%",
+  "pnl": "net realized PnL with $ sign, e.g. $12,345",
+  "vol": "total volume with $ sign, e.g. $1.2M",
+  "winRate": "win rate with % sign, e.g. 67%"
+}
+If you cannot find a value, use empty string "". Return ONLY the JSON, nothing else.`
+              }
+            ]
+          }
+        ]
+      })
+    });
 
-Return ONLY the JSON object, no other text.`,
-          },
-        ],
-      });
+    const data = await response.json();
+    res.status(200).json(data);
 
-      const text = message.content[0].text;
-      const parsed = JSON.parse(text);
-      results.push(parsed);
-    }
-
-    return res.status(200).json({ results });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 }
