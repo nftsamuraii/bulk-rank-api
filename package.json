@@ -1,0 +1,9 @@
+{
+  "name": "bulk-rank-api",
+  "version": "1.0.0",
+  "description": "Bulk rank analysis API",
+  "main": "index.js",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.20.0"
+  }
+}
