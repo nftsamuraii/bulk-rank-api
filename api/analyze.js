@@ -40,7 +40,8 @@ export default async function handler(req, res) {
   "roi": "cashflow adjusted ROI with sign and %, e.g. +124.5%",
   "pnl": "net realized PnL with $ sign, e.g. $12,345",
   "vol": "total volume with $ sign, e.g. $1.2M",
-  "winRate": "win rate with % sign, e.g. 67%"
+  "winRate": "win rate with % sign, e.g. 67%",
+  "date": "date and time shown on the card, e.g. 2026-05-22 18:40:18"
 }
 If you cannot find a value, use empty string "". Return ONLY the JSON, nothing else.`
               }
